@@ -6,10 +6,10 @@
 static void ryserTestGreyCodeSparse(benchmark::State& state) {
      auto matrix = generateMatrixFlatten(state.range(0),((double)state.range(1)) / 100.0); // Generate a matrix of size n x n with density
      auto sparse = convertToNonZeroElements(matrix,state.range(0));
-     delete[] matrix;
     for (auto _ : state) {
         computePermanentRyserGreyCodeSparse(sparse,state.range(0)); // Replace with your naive function call
     }
+    delete[] matrix;
 }
 
 static void ryserTestGreyCode(benchmark::State& state) {

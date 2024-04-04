@@ -18,36 +18,40 @@ std::vector<std::vector<int>> generateMatrix(int n,double density) {
 
     std::random_device rd;
     std::mt19937 eng(rd());
-    std::uniform_real_distribution<int> distr(0, n);
+    std::uniform_int_distribution<int> distr(0, n - 1);
+    std::uniform_int_distribution<int> distr2(0, 9);
 
     for (int i = 0; i < numberOfNonZeros; ++i) {
         int row, col;
         do {
-            row = distr(eng) % n; // Random row index
-            col = distr(eng) % n; // Random column index
+            row = distr(eng); // Random row index
+            col = distr(eng); // Random column index
         } while (matrix[row][col] != 0); // Ensure the slot is initially zero to avoid placing two non-zeros in the same spot
 
-        matrix[row][col] = distr(eng); // Assign a random non-zero value (1 to 9) to this position
+        matrix[row][col] = distr2(eng); // Assign a random non-zero value (1 to 9) to this position
     }
 
     return matrix;
 }
 
 int * generateMatrixFlatten(int n,double density) {
-     int* matrix = new int[n * n]; // Dynamically allocate memory for n*n integers
-    
-       int numberOfNonZeros = static_cast<int>(n * n * density); // Total non-zero elements based on density
+    int* matrix = new int[n * n]; // Dynamically allocate memory for n*n integers
+    memset(matrix,0,sizeof(int) * n * n);
+    int numberOfNonZeros = static_cast<int>(n * n * density); // Total non-zero elements based on density
 
-    std::srand(std::time(nullptr)); // Seed for random number generation
+    std::random_device rd;
+    std::mt19937 eng(rd());
+    std::uniform_int_distribution<int> distr(0, n - 1);
+    std::uniform_int_distribution<int> distr2(0, 9);
 
     for (int i = 0; i < numberOfNonZeros; ++i) {
         int row, col;
         do {
-            row = std::rand() % n; // Random row index
-            col = std::rand() % n; // Random column index
+            row = distr(eng); // Random row index
+            col = distr(eng); // Random column index
         } while (matrix[n * row + col] != 0); // Ensure the slot is initially zero to avoid placing two non-zeros in the same spot
 
-        matrix[row * n + col] = std::rand() % 9 + 1; // Assign a random non-zero value (1 to 9) to this position
+        matrix[row * n + col] = distr2(eng); // Assign a random non-zero value (1 to 9) to this position
     }
     
     return matrix; 
