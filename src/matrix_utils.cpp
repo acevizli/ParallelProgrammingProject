@@ -64,7 +64,7 @@ int* flattenVector(const std::vector<std::vector<int>>& matrix) {
     int rows = matrix.size();
     int cols = matrix[0].size();
     int* flatArray = new int[rows * cols]; // Dynamically allocate memory for the flattened array
-    
+    memset(flatArray,0,rows * cols * sizeof(int));
     for (int i = 0; i < rows; ++i) {
         for (int j = 0; j < cols; ++j) {
             flatArray[i * cols + j] = matrix[i][j]; // Flatten the matrix

@@ -58,6 +58,22 @@ TEST(PermanentTest, Ryser) {
     EXPECT_EQ(naivePermanent, ryserPermanent);
 }
 
+TEST(PermanentTest, RyserPar) {
+    int n = 10; 
+    auto matrix = generateMatrix(n, 0.5);
+
+
+    int * matrixFlatten = flattenVector(matrix);
+    
+    
+    long long naivePermanent = computePermanent(matrix);
+    long long ryserPermanent = computePermanentRyserPar(matrixFlatten, n);
+
+    delete[] matrixFlatten;
+    
+    EXPECT_EQ(naivePermanent, ryserPermanent);
+}
+
 TEST(PermanentTest, RyserGreyCode) {
     int n = 10; 
     auto matrix = generateMatrix(n, 0.3);
@@ -86,5 +102,37 @@ TEST(PermanentTest, RyserGreyCodeSparse) {
     delete[] matrixFlatten;
 
     EXPECT_EQ(naivePermanent, ryserGreyCodeSparsePermanent);
+}
+
+TEST(PermanentTest, RyserSparse) {
+    int n = 10; 
+    auto matrix = generateMatrix(n, 0.5);
+
+    int * matrixFlatten = flattenVector(matrix);
+
+    auto sparse = convertToNonZeroElements(matrixFlatten,n);
+
+    long long naivePermanent = computePermanent(matrix);
+    long long ryserSparsePermanent = computePermanentRyserSparse(sparse, n);
+
+    delete[] matrixFlatten;
+
+    EXPECT_EQ(naivePermanent, ryserSparsePermanent);
+}
+
+TEST(PermanentTest, RyserSparsePar) {
+    int n = 10; 
+    auto matrix = generateMatrix(n, 0.5);
+
+    int * matrixFlatten = flattenVector(matrix);
+
+    auto sparse = convertToNonZeroElements(matrixFlatten,n);
+
+    long long naivePermanent = computePermanent(matrix);
+    long long ryserSparsePermanent = computePermanentRyserSparsePar(sparse, n);
+
+    delete[] matrixFlatten;
+
+    EXPECT_EQ(naivePermanent, ryserSparsePermanent);
 }
 
