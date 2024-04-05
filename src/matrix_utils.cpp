@@ -1,4 +1,5 @@
 #include "matrix_utils.h"
+#include <cstring>
 #include <random>
 std::vector<NonZeroElement> convertToNonZeroElements(int* A, int n) {
     std::vector<NonZeroElement> nonZeroElements;
