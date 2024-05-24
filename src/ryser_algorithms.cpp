@@ -228,3 +228,72 @@ long long computePermanentRyserSparse(const std::vector<NonZeroElement>& nonZero
     //benchmark::DoNotOptimize(sum);
     return sum;
 }
+
+
+long long computePermanentSpaRyser(int n, int* crs_ptrs, int* crs_colids, double* crs_values, int* ccs_ptrs, int* ccs_rowids, double* ccs_values) {
+    double* x = (double*)malloc(n * sizeof(double));
+
+    int nzeros = 0;
+    //#pragma omp parallel for reduction(+:nzeros)
+    for (int i = 0; i < n; i++){
+        double sum = 0;
+        for (int ptr = crs_ptrs[i]; ptr < crs_ptrs[i+1]; ptr++){
+            sum = sum + crs_values[ptr];
+        }
+        x[i] = crs_values[crs_ptrs[i+1] - 1] - (sum / 2);
+
+        if (x[i] == 0){
+            nzeros = nzeros + 1;
+        }
+    }
+
+    double p = 1;
+    
+    if (nzeros == 0){
+        for (int j = 0; j < n; j++){
+            p = p * x[j];
+        }
+    }
+    else {
+        p = 0;
+    }
+
+    std::bitset<64> grey_prev(0);
+
+    int ctr = 0;
+
+    for (unsigned long long g = 1; g < pow(2, n); g++){
+        std::bitset<64> grey(g ^(g >> 1));
+        std::bitset<64> diff = grey ^ grey_prev;
+        int j = __builtin_ctzll(diff.to_ullong());    
+        int s = 2 * grey[j] - 1;
+
+        for (int ptr = ccs_ptrs[j]; ptr < ccs_ptrs[j+1]; ptr++){
+            int row = ccs_rowids[ptr];
+            int val = ccs_values[ptr];
+
+            if (x[row] == 0){
+                nzeros = nzeros - 1;
+            }
+
+            x[row] = x[row] + (s * val);
+
+            if (x[row] == 0){
+                nzeros = nzeros + 1;
+            }
+        }
+
+        if (nzeros == 0) {
+            ctr++;
+            double prod = 1;
+            for (int i = 0; i < n; i++) {
+                prod = prod * x[i];
+            }
+
+            p = p + pow(-1, g) * prod;
+        }   
+        grey_prev = grey;    
+    }
+
+    return -p * (2 * (n % 2) - 1);
+}

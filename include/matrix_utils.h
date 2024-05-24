@@ -50,3 +50,7 @@ std::vector<std::vector<int>> generateMatrix(int n,double density);
 
 
 int* flattenVector(const std::vector<std::vector<int>>& matrix);
+
+void convertToCRS(int* A, int n, int* crs_ptrs, int* crs_colids, double* crs_values);
+
+void convertToCCS(int* A, int n, int* ccs_ptrs, int* ccs_rowids, double* ccs_values);

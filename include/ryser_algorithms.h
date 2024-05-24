@@ -13,3 +13,5 @@ long long computePermanentRyserSparsePar(const std::vector<NonZeroElement>& nonZ
 
 
 long long computePermanentRyserSparse(const std::vector<NonZeroElement>& nonZeroElements, int n);
+
+long long computePermanentSpaRyser(int n, int* crs_ptrs, int* crs_colids, double* crs_values, int* ccs_ptrs, int* ccs_rowids, double* ccs_values);

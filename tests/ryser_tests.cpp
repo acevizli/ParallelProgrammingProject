@@ -136,3 +136,33 @@ TEST(PermanentTest, RyserSparsePar) {
     EXPECT_EQ(naivePermanent, ryserSparsePermanent);
 }
 
+
+TEST(PermanentTest, RyserSparseSpaRyser) {
+    int n = 10; 
+    int nnz = static_cast<int>(n * n * 0.5);
+
+    // CRS
+    int* crs_ptrs = (int*)malloc((n + 1) * sizeof(int));
+    int* crs_colids = (int*)malloc(nnz * sizeof(int));
+    double* crs_values = (double*)malloc(nnz * sizeof(double));
+
+    // CCS
+    int* ccs_ptrs = (int*)malloc((n + 1) * sizeof(int));
+    int* ccs_rowids = (int*)malloc(nnz * sizeof(int));
+    double* ccs_values = (double*)malloc(nnz * sizeof(double));
+
+    auto matrix = generateMatrix(n, 0.5);
+
+    int * matrixFlatten = flattenVector(matrix);
+
+    convertToCRS(matrixFlatten, n, crs_ptrs, crs_colids, crs_values);
+    convertToCCS(matrixFlatten, n, ccs_ptrs, ccs_rowids, ccs_values);
+
+    long long naivePermanent = computePermanent(matrix);
+    long long ryserSpaRyser = computePermanentSpaRyser(n, crs_ptrs, crs_colids, crs_values, ccs_ptrs, ccs_rowids, ccs_values);
+
+    delete[] matrixFlatten;
+
+    EXPECT_EQ(naivePermanent, ryserSpaRyser);
+}
+
