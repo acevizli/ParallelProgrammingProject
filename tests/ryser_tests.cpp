@@ -4,7 +4,7 @@
 #include <vector>
 #include <iostream>
 using std::vector;
-long long calcPermanent(const vector<vector<int>>& matrix, vector<int> cols, int startRow) {
+long long calcPermanent(const vector<vector<double>>& matrix, vector<int> cols, int startRow) {
     int n = cols.size();
     if (n == 1) {
         // Base case: If there's only one column left, return its value in the remaining row
@@ -22,7 +22,7 @@ long long calcPermanent(const vector<vector<int>>& matrix, vector<int> cols, int
 }
 
 // Wrapper function to calculate the permanent of the entire matrix
-long long computePermanent(const vector<vector<int>>& matrix) {
+long long computePermanent(const vector<vector<double>>& matrix) {
     int n = matrix.size();
     vector<int> cols(n);
     for (int i = 0; i < n; ++i) {
@@ -33,7 +33,7 @@ long long computePermanent(const vector<vector<int>>& matrix) {
 
 
 TEST(PermanentTest, Naive) {
-    vector<vector<int>> matrix = {
+    vector<vector<double>> matrix = {
         {1, 2, 3},
         {4, 5, 6},
         {7, 8, 9}
@@ -47,7 +47,7 @@ TEST(PermanentTest, Ryser) {
     auto matrix = generateMatrix(n, 0.3);
 
 
-    int * matrixFlatten = flattenVector(matrix);
+    auto matrixFlatten = flattenVector(matrix);
     
     
     long long naivePermanent = computePermanent(matrix);
@@ -63,7 +63,7 @@ TEST(PermanentTest, RyserPar) {
     auto matrix = generateMatrix(n, 0.5);
 
 
-    int * matrixFlatten = flattenVector(matrix);
+    auto matrixFlatten = flattenVector(matrix);
     
     
     long long naivePermanent = computePermanent(matrix);
@@ -78,7 +78,7 @@ TEST(PermanentTest, RyserGreyCode) {
     int n = 10; 
     auto matrix = generateMatrix(n, 0.3);
 
-    int * matrixFlatten = flattenVector(matrix);
+    auto matrixFlatten = flattenVector(matrix);
 
     long long naivePermanent = computePermanent(matrix);
     long long ryserGreyCodePermanent = computePermanentRyserGreyCode(matrixFlatten, n);
@@ -92,7 +92,7 @@ TEST(PermanentTest, RyserGreyCodeSparse) {
     int n = 10; 
     auto matrix = generateMatrix(n, 0.03);
 
-    int * matrixFlatten = flattenVector(matrix);
+    auto matrixFlatten = flattenVector(matrix);
 
     auto sparse = convertToNonZeroElements(matrixFlatten,n);
 
@@ -108,7 +108,7 @@ TEST(PermanentTest, RyserSparse) {
     int n = 10; 
     auto matrix = generateMatrix(n, 0.5);
 
-    int * matrixFlatten = flattenVector(matrix);
+    auto matrixFlatten = flattenVector(matrix);
 
     auto sparse = convertToNonZeroElements(matrixFlatten,n);
 
@@ -124,7 +124,7 @@ TEST(PermanentTest, RyserSparsePar) {
     int n = 10; 
     auto matrix = generateMatrix(n, 0.5);
 
-    int * matrixFlatten = flattenVector(matrix);
+    auto matrixFlatten = flattenVector(matrix);
 
     auto sparse = convertToNonZeroElements(matrixFlatten,n);
 
@@ -153,7 +153,7 @@ TEST(PermanentTest, RyserSparseSpaRyser) {
 
     auto matrix = generateMatrix(n, 0.5);
 
-    int * matrixFlatten = flattenVector(matrix);
+    auto matrixFlatten = flattenVector(matrix);
 
     convertToCRS(matrixFlatten, n, crs_ptrs, crs_colids, crs_values);
     convertToCCS(matrixFlatten, n, ccs_ptrs, ccs_rowids, ccs_values);

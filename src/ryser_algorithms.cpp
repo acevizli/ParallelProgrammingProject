@@ -43,7 +43,7 @@ long long computePermanentRyserGreyCodeSparse(const std::vector<NonZeroElement>&
     return sum;
 }
 
-long long computePermanentRyserGreyCode(int* A, int n) {
+long long computePermanentRyserGreyCode(double* A, int n) {
     long long sum = 0;
     std::vector<long long> rowSum(n, 0); 
     unsigned long long totalSubsets = power2[n]; // Total number of subsets is 2^n
@@ -83,7 +83,7 @@ long long computePermanentRyserGreyCode(int* A, int n) {
     return sum;
 }
 
-long long computePermanentRyser(int* A, int n) {
+long long computePermanentRyser(double* A, int n) {
     long sum = 0;
     long rowsumprod, rowsum;   
     unsigned long long C = power2[n]; 
@@ -120,7 +120,7 @@ long long computePermanentRyser(int* A, int n) {
     return sum;
 }
 
-long long computePermanentRyserPar(int* A, int n) {
+long long computePermanentRyserPar(double* A, int n) {
     long sum = 0; 
     unsigned long long C = power2[n]; 
     // loop all 2^n submatrices of A
@@ -258,11 +258,11 @@ long long computePermanentSpaRyser(int n, int* crs_ptrs, int* crs_colids, double
         p = 0;
     }
 
-    std::bitset<64> grey_prev(0);
 
     int ctr = 0;
 
-    for (unsigned long long g = 1; g < pow(2, n); g++){
+    for (unsigned long long g = 1; g < power2[n]; g++){
+        std::bitset<64> grey_prev((g-1) ^((g-1) >> 1));
         std::bitset<64> grey(g ^(g >> 1));
         std::bitset<64> diff = grey ^ grey_prev;
         int j = __builtin_ctzll(diff.to_ullong());    
@@ -286,12 +286,14 @@ long long computePermanentSpaRyser(int n, int* crs_ptrs, int* crs_colids, double
         if (nzeros == 0) {
             ctr++;
             double prod = 1;
+            //#pragma omp parallel for reduction(*:prod)
             for (int i = 0; i < n; i++) {
                 prod = prod * x[i];
             }
+            auto val = pow(-1, g) * prod;
 
-            p = p + pow(-1, g) * prod;
-        }   
+            p += val;
+        } 
         grey_prev = grey;    
     }
 
