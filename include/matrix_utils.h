@@ -7,17 +7,6 @@
 #include <numeric> 
 #include <bitset>
 
-constexpr long long pow2(int exponent) {
-    return exponent == 0 ? 1 : 2 * pow2(exponent - 1);
-}
-
-template<std::size_t... Indices>
-constexpr auto makePowersOf2(std::index_sequence<Indices...>) {
-    return std::array<long long, sizeof...(Indices)>{pow2(Indices)...};
-}
-
-constexpr auto power2 = makePowersOf2(std::make_index_sequence<63>{});
-
 inline int* dec2binarr(long n, int dim)
 {
     // note: res[dim] will save the sum res[0]+...+res[dim-1]

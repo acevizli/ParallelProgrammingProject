@@ -1,17 +1,35 @@
 #pragma once
 #include <vector>
 #include "matrix_utils.h"
-long long computePermanentRyserGreyCodeSparse(const std::vector<NonZeroElement>& nonZeroElements, int n);
 
-long long computePermanentRyserGreyCode(double* A, int n);
+constexpr long long pow2(int exponent) {
+    return exponent == 0 ? 1 : 2 * pow2(exponent - 1);
+}
 
-long long computePermanentRyser(double* A, int n);
+template<std::size_t... Indices>
+constexpr auto makePowersOf2(std::index_sequence<Indices...>) {
+    return std::array<long long, sizeof...(Indices)>{pow2(Indices)...};
+}
 
-long long computePermanentRyserPar(double* A, int n);
-
-long long computePermanentRyserSparsePar(const std::vector<NonZeroElement>& nonZeroElements, int n);
+constexpr auto power2 = makePowersOf2(std::make_index_sequence<63>{});
 
 
-long long computePermanentRyserSparse(const std::vector<NonZeroElement>& nonZeroElements, int n);
 
-long long computePermanentSpaRyser(int n, int* crs_ptrs, int* crs_colids, double* crs_values, int* ccs_ptrs, int* ccs_rowids, double* ccs_values);
+
+double computePermanentRyserGreyCodeSparse(const std::vector<NonZeroElement>& nonZeroElements, int n);
+
+double computePermanentRyserGreyCode(double* A, int n);
+
+long double computePermanentRyser(double* A, int n);
+
+double computePermanentRyserPar(double* A, int n);
+
+double computePermanentRyserSparsePar(const std::vector<NonZeroElement>& nonZeroElements, int n);
+
+
+double computePermanentRyserSparse(const std::vector<NonZeroElement>& nonZeroElements, int n);
+
+
+
+
+double computePermanentSpaRyser(int n, int* crs_ptrs, int* crs_colids, double* crs_values, int* ccs_ptrs, int* ccs_rowids, double* ccs_values);

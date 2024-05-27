@@ -1,16 +1,18 @@
 #include "matrix_utils.h"
 #include "ryser_algorithms.h"
+#include "ryser_cuda.h"
 #include <gtest/gtest.h>
 #include <vector>
 #include <iostream>
 using std::vector;
-long long calcPermanent(const vector<vector<double>>& matrix, vector<int> cols, int startRow) {
+
+double calcPermanent(const vector<vector<double>>& matrix, vector<int> cols, int startRow) {
     int n = cols.size();
     if (n == 1) {
         // Base case: If there's only one column left, return its value in the remaining row
         return matrix[startRow][cols[0]];
     }
-    long long sum = 0;
+    double sum = 0;
     for (int i = 0; i < n; ++i) {
         // Create a new column list excluding the current column
         vector<int> nextCols = cols;
@@ -22,7 +24,7 @@ long long calcPermanent(const vector<vector<double>>& matrix, vector<int> cols, 
 }
 
 // Wrapper function to calculate the permanent of the entire matrix
-long long computePermanent(const vector<vector<double>>& matrix) {
+double computePermanent(const vector<vector<double>>& matrix) {
     int n = matrix.size();
     vector<int> cols(n);
     for (int i = 0; i < n; ++i) {
@@ -38,7 +40,7 @@ TEST(PermanentTest, Naive) {
         {4, 5, 6},
         {7, 8, 9}
     };
-    EXPECT_EQ(computePermanent(matrix), 450); 
+    EXPECT_EQ(computePermanent(matrix), 450.0); 
 }
 
 
@@ -50,12 +52,12 @@ TEST(PermanentTest, Ryser) {
     auto matrixFlatten = flattenVector(matrix);
     
     
-    long long naivePermanent = computePermanent(matrix);
-    long long ryserPermanent = computePermanentRyser(matrixFlatten, n);
-
+    double naivePermanent = computePermanent(matrix);
+    double ryserPermanent = computePermanentRyser(matrixFlatten, n);
+    std::cout << naivePermanent << " " << ryserPermanent <<std::endl;
     delete[] matrixFlatten;
     
-    EXPECT_EQ(naivePermanent, ryserPermanent);
+    EXPECT_NEAR(naivePermanent, ryserPermanent,1e-9);
 }
 
 TEST(PermanentTest, RyserPar) {
@@ -66,8 +68,8 @@ TEST(PermanentTest, RyserPar) {
     auto matrixFlatten = flattenVector(matrix);
     
     
-    long long naivePermanent = computePermanent(matrix);
-    long long ryserPermanent = computePermanentRyserPar(matrixFlatten, n);
+    double naivePermanent = computePermanent(matrix);
+    double ryserPermanent = computePermanentRyserPar(matrixFlatten, n);
 
     delete[] matrixFlatten;
     
@@ -80,8 +82,8 @@ TEST(PermanentTest, RyserGreyCode) {
 
     auto matrixFlatten = flattenVector(matrix);
 
-    long long naivePermanent = computePermanent(matrix);
-    long long ryserGreyCodePermanent = computePermanentRyserGreyCode(matrixFlatten, n);
+    double naivePermanent = computePermanent(matrix);
+    double ryserGreyCodePermanent = computePermanentRyserGreyCode(matrixFlatten, n);
 
     delete[] matrixFlatten;
 
@@ -96,12 +98,28 @@ TEST(PermanentTest, RyserGreyCodeSparse) {
 
     auto sparse = convertToNonZeroElements(matrixFlatten,n);
 
-    long long naivePermanent = computePermanent(matrix);
-    long long ryserGreyCodeSparsePermanent = computePermanentRyserGreyCodeSparse(sparse, n);
+    double naivePermanent = computePermanent(matrix);
+    double ryserGreyCodeSparsePermanent = computePermanentRyserGreyCodeSparse(sparse, n);
 
     delete[] matrixFlatten;
 
     EXPECT_EQ(naivePermanent, ryserGreyCodeSparsePermanent);
+}
+
+TEST(PermanentTest, RyserSparseCUDA) {
+    int n = 10; 
+    auto matrix = generateMatrix(n, 0.5);
+
+    auto matrixFlatten = flattenVector(matrix);
+
+    auto sparse = convertToNonZeroElements(matrixFlatten,n);
+
+    double naivePermanent = computePermanent(matrix);
+    double ryserGreyCodeSparsePermanent = computePermanentRyserSparseCUDA(sparse, n);
+
+    delete[] matrixFlatten;
+
+    EXPECT_NEAR(naivePermanent, ryserGreyCodeSparsePermanent,1e-9);
 }
 
 TEST(PermanentTest, RyserSparse) {
@@ -112,8 +130,8 @@ TEST(PermanentTest, RyserSparse) {
 
     auto sparse = convertToNonZeroElements(matrixFlatten,n);
 
-    long long naivePermanent = computePermanent(matrix);
-    long long ryserSparsePermanent = computePermanentRyserSparse(sparse, n);
+    double naivePermanent = computePermanent(matrix);
+    double ryserSparsePermanent = computePermanentRyserSparse(sparse, n);
 
     delete[] matrixFlatten;
 
@@ -128,8 +146,8 @@ TEST(PermanentTest, RyserSparsePar) {
 
     auto sparse = convertToNonZeroElements(matrixFlatten,n);
 
-    long long naivePermanent = computePermanent(matrix);
-    long long ryserSparsePermanent = computePermanentRyserSparsePar(sparse, n);
+    double naivePermanent = computePermanent(matrix);
+    double ryserSparsePermanent = computePermanentRyserSparsePar(sparse, n);
 
     delete[] matrixFlatten;
 
@@ -158,11 +176,11 @@ TEST(PermanentTest, RyserSparseSpaRyser) {
     convertToCRS(matrixFlatten, n, crs_ptrs, crs_colids, crs_values);
     convertToCCS(matrixFlatten, n, ccs_ptrs, ccs_rowids, ccs_values);
 
-    long long naivePermanent = computePermanent(matrix);
-    long long ryserSpaRyser = computePermanentSpaRyser(n, crs_ptrs, crs_colids, crs_values, ccs_ptrs, ccs_rowids, ccs_values);
+    double naivePermanent = computePermanent(matrix);
+    double ryserSpaRyser = computePermanentSpaRyser(n, crs_ptrs, crs_colids, crs_values, ccs_ptrs, ccs_rowids, ccs_values);
 
     delete[] matrixFlatten;
 
-    EXPECT_EQ(naivePermanent, ryserSpaRyser);
+    EXPECT_NEAR(naivePermanent, ryserSpaRyser,1e-9);
 }
 
