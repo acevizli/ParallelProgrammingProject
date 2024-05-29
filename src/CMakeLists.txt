@@ -6,7 +6,7 @@ find_package(benchmark REQUIRED)
 
 find_package(CUDA REQUIRED)
 
-set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11")
+set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++14")
 cuda_add_library(kernels cuda_kernels.cu)
 target_include_directories(kernels PRIVATE ${PROJECT_SOURCE_DIR}/include)
 add_executable(RyserBenchmark

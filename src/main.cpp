@@ -271,9 +271,9 @@ if(matrix[i*n+j] != 0) nonzeros++;
 
     double start= omp_get_wtime();
 
-    cout << computePermanentSpaRyserMain(n, nonzeros, crs_ptrs, crs_colids, crs_values, ccs_ptrs, ccs_rowids, ccs_values) <<std::endl;
+    cout << std::scientific << std::setprecision(2) << computePermanentSpaRyserMain(n, nonzeros, crs_ptrs, crs_colids, crs_values, ccs_ptrs, ccs_rowids, ccs_values) <<std::endl;
     double end = omp_get_wtime();
-    std::cout << "time "<<end - start<<endl; 
+    std::cout<<std::defaultfloat <<std::setprecision(6)<< "time "<<end - start<<endl; 
     
     delete[] matrix;
   }

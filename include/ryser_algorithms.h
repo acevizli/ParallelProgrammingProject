@@ -2,16 +2,7 @@
 #include <vector>
 #include "matrix_utils.h"
 
-constexpr long long pow2(int exponent) {
-    return exponent == 0 ? 1 : 2 * pow2(exponent - 1);
-}
 
-template<std::size_t... Indices>
-constexpr auto makePowersOf2(std::index_sequence<Indices...>) {
-    return std::array<long long, sizeof...(Indices)>{pow2(Indices)...};
-}
-
-constexpr auto power2 = makePowersOf2(std::make_index_sequence<63>{});
 
 
 
