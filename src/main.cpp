@@ -258,21 +258,21 @@ if(matrix[i*n+j] != 0) nonzeros++;
 
 
     //matrix = generateMatrixFlatten(20,0.4);
-    double start_hoca = omp_get_wtime();
-    cout << big_perman(matrix,n) <<endl;
-    double end_hoca = omp_get_wtime();
+    // double start_hoca = omp_get_wtime();
+    // cout << big_perman(matrix,n) <<endl;
+    // double end_hoca = omp_get_wtime();
     
-    std::cout << "hoca time "<<end_hoca - start_hoca<<endl; 
+    // std::cout << "hoca time "<<end_hoca - start_hoca<<endl; 
+    // double start= omp_get_wtime();
+
+    // cout << computePermanentRyserSparseCUDA(sparse,n) <<std::endl;
+    // double end = omp_get_wtime();
+    // std::cout << "time "<<end - start<<endl; 
+
     double start= omp_get_wtime();
 
-    cout << computePermanentRyserSparseCUDA(sparse,n) <<std::endl;
-    double end = omp_get_wtime();
-    std::cout << "time "<<end - start<<endl; 
-
-    start= omp_get_wtime();
-
     cout << computePermanentSpaRyserMain(n, nonzeros, crs_ptrs, crs_colids, crs_values, ccs_ptrs, ccs_rowids, ccs_values) <<std::endl;
-    end = omp_get_wtime();
+    double end = omp_get_wtime();
     std::cout << "time "<<end - start<<endl; 
     
     delete[] matrix;
