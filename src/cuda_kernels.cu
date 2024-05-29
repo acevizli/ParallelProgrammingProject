@@ -102,9 +102,8 @@ __global__ void computePermanentSpaRyserGPU(int allThreads, int chunkSize, int n
     double prod = 1;
 
     double inner_p = 0;
-    //double* inner_x = &shared_mem[threadIdx.x * n];
+    double* inner_x = &shared_mem[threadIdx.x * n];
 
-    double inner_x[50];
     // creata a copy of x in the shared mem for each thread
     for (unsigned long long i = 0; i < n; i++){
         inner_x[i] = x[i];
@@ -218,13 +217,15 @@ double computePermanentSpaRyserMain(int n, int nnz, int* crs_ptrs, int* crs_coli
         p = 0;
     }
 
-    unsigned long long C = pow(2, n);
-    unsigned long long blockSize = 64;
-    unsigned long long chunkSize = 32;
-    unsigned long long allThreads = (C + chunkSize - 1) / chunkSize;
-    unsigned long long numBlocks = (allThreads + blockSize - 1) / blockSize;
+    // 268435456ll threads
 
-    printf("Number of threads: %ull\n", allThreads);
+    uint64_t C = pow(2, n);
+    uint64_t blockSize = 128;
+    uint64_t chunkSize = 128;
+    uint64_t allThreads = (C + chunkSize - 1) / chunkSize;
+    uint64_t numBlocks = (allThreads + blockSize - 1) / blockSize;
+
+    printf("Number of threads: %u\n", allThreads);
 
     size_t sharedMemSize = blockSize * n * sizeof(double); 
 
