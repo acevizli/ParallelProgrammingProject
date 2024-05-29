@@ -202,7 +202,7 @@ int main(int argc, char *argv[]){
 if(matrix[i*n+j] != 0) nonzeros++;
       } 
     }
-    PrintMatrix(matrix, n);    
+    //PrintMatrix(matrix, n);    
   } else if(argc == 2) {
     std::string filename = argv[1];  // Replace with your file name
     std::ifstream file(filename);
@@ -228,9 +228,9 @@ if(matrix[i*n+j] != 0) nonzeros++;
 
   auto sparse = convertToNonZeroElements(matrix,n);
   cout << "file is read"<<endl;
-    PrintMatrix(matrix, n);    
+    //PrintMatrix(matrix, n);    
   
-   int* crs_ptrs = (int*)malloc((n + 1) * sizeof(int));
+    int* crs_ptrs = (int*)malloc((n + 1) * sizeof(int));
     int* crs_colids = (int*)malloc(nonzeros * sizeof(int));
     double* crs_values = (double*)malloc(nonzeros * sizeof(double));
 
@@ -244,19 +244,21 @@ if(matrix[i*n+j] != 0) nonzeros++;
     convertToCCS(matrix, n, ccs_ptrs, ccs_rowids, ccs_values);
   if(argc > 1) {
     std::cout << std::fixed << std::setprecision(50);
-    double start_spa = omp_get_wtime();
-    cout <<  computePermanentSpaRyser(n,crs_ptrs,crs_colids,crs_values,ccs_ptrs,ccs_rowids,ccs_values) << endl;
-    double end_spa = omp_get_wtime();
-    std::cout << "spa time "<<end_spa - start_spa<<endl; 
-
-    double start_omp = omp_get_wtime();
-    cout << computePermanentRyserSparsePar(sparse,n) <<endl;
-    double end_omp = omp_get_wtime();
-    std::cout << "par time "<<end_omp - start_omp<<endl; 
 
 
-    //matrix = generateMatrixFlatten(15,0.4);
-    /*double start_hoca = omp_get_wtime();
+    // double start_spa = omp_get_wtime();
+    // cout <<  computePermanentSpaRyser(n,crs_ptrs,crs_colids,crs_values,ccs_ptrs,ccs_rowids,ccs_values) << endl;
+    // double end_spa = omp_get_wtime();
+    // std::cout << "spa time "<<end_spa - start_spa<<endl; 
+
+    // double start_omp = omp_get_wtime();
+    // cout << computePermanentRyserSparsePar(sparse,n) <<endl;
+    // double end_omp = omp_get_wtime();
+    // std::cout << "par time "<<end_omp - start_omp<<endl; 
+
+
+    //matrix = generateMatrixFlatten(20,0.4);
+    double start_hoca = omp_get_wtime();
     cout << big_perman(matrix,n) <<endl;
     double end_hoca = omp_get_wtime();
     
@@ -266,7 +268,13 @@ if(matrix[i*n+j] != 0) nonzeros++;
     cout << computePermanentRyserSparseCUDA(sparse,n) <<std::endl;
     double end = omp_get_wtime();
     std::cout << "time "<<end - start<<endl; 
-    */
+
+    start= omp_get_wtime();
+
+    cout << computePermanentSpaRyserMain(n, nonzeros, crs_ptrs, crs_colids, crs_values, ccs_ptrs, ccs_rowids, ccs_values) <<std::endl;
+    end = omp_get_wtime();
+    std::cout << "time "<<end - start<<endl; 
+    
     delete[] matrix;
   }
   return 0;
