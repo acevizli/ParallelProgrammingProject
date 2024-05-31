@@ -9,13 +9,32 @@ find_package(CUDA REQUIRED)
 set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++14")
 cuda_add_library(kernels cuda_kernels.cu)
 target_include_directories(kernels PRIVATE ${PROJECT_SOURCE_DIR}/include)
-add_executable(RyserBenchmark
+set(SOURCE_FILES
         main.cpp
         matrix_utils.cpp
         ryser_algorithms.cpp
 
 )
-target_link_libraries(RyserBenchmark kernels ${CUDA_LIBRARIES})
-target_include_directories(RyserBenchmark PRIVATE ${PROJECT_SOURCE_DIR}/include)
+function(set_common_properties target)
+    target_link_libraries(${target} kernels ${CUDA_LIBRARIES})
+    target_include_directories(${target} PRIVATE ${PROJECT_SOURCE_DIR}/include)
+    target_link_libraries(${target} benchmark::benchmark)
+    set_target_properties(${target} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+endfunction()
 
-target_link_libraries(RyserBenchmark benchmark::benchmark)
+
+add_executable(RyserBenchmark ${SOURCE_FILES})
+target_compile_definitions(RyserBenchmark PRIVATE BENCHMARK_TEST)
+set_common_properties(RyserBenchmark)
+
+add_executable(RyserGPU ${SOURCE_FILES})
+target_compile_definitions(RyserGPU PRIVATE GPU_TEST)
+set_common_properties(RyserGPU)
+
+add_executable(RyserMultiGPU ${SOURCE_FILES})
+target_compile_definitions(RyserMultiGPU PRIVATE MULTI_GPU_TEST)
+set_common_properties(RyserMultiGPU)
+
+add_executable(RyserCPU ${SOURCE_FILES})
+target_compile_definitions(RyserCPU PRIVATE CPU_TEST)
+set_common_properties(RyserCPU)
