@@ -202,7 +202,7 @@ int main(int argc, char *argv[]){
 if(matrix[i*n+j] != 0) nonzeros++;
       } 
     }
-    //PrintMatrix(matrix, n);    
+//    PrintMatrix(matrix, n);    
   } else if(argc == 2) {
     std::string filename = argv[1];  // Replace with your file name
     std::ifstream file(filename);
@@ -270,10 +270,14 @@ if(matrix[i*n+j] != 0) nonzeros++;
     // std::cout << "time "<<end - start<<endl; 
 
     double start= omp_get_wtime();
-
     cout << std::scientific << std::setprecision(2) << computePermanentSpaRyserMain(n, nonzeros, crs_ptrs, crs_colids, crs_values, ccs_ptrs, ccs_rowids, ccs_values) <<std::endl;
     double end = omp_get_wtime();
     std::cout<<std::defaultfloat <<std::setprecision(6)<< "time "<<end - start<<endl; 
+
+    double start_multi= omp_get_wtime();
+    cout << std::scientific << std::setprecision(2) << computePermanentSpaRyserMainMultiGPU(n, nonzeros, crs_ptrs, crs_colids, crs_values, ccs_ptrs, ccs_rowids, ccs_values) <<std::endl;
+    double end_multi = omp_get_wtime();
+    std::cout<<std::defaultfloat <<std::setprecision(6)<< "time "<<end_multi - start_multi<<endl; 
     
     delete[] matrix;
   }
