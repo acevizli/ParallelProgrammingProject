@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <numeric> 
 #include <bitset>
-
 constexpr long long pow2(int exponent) {
     return exponent == 0 ? 1 : 2 * pow2(exponent - 1);
 }
@@ -17,7 +16,6 @@ constexpr auto makePowersOf2(std::index_sequence<Indices...>) {
 }
 
 constexpr auto power2 = makePowersOf2(std::make_index_sequence<63>{});
-
 inline int* dec2binarr(long n, int dim)
 {
     // note: res[dim] will save the sum res[0]+...+res[dim-1]
@@ -39,14 +37,18 @@ inline int* dec2binarr(long n, int dim)
 struct NonZeroElement {
     int row;
     int col;
-    int value;
+    double value;
 };
 
-std::vector<NonZeroElement> convertToNonZeroElements(int* A, int n);
+std::vector<NonZeroElement> convertToNonZeroElements(double* A, int n);
 
-int * generateMatrixFlatten(int n,double density);
+double * generateMatrixFlatten(int n,double density);
 
-std::vector<std::vector<int>> generateMatrix(int n,double density);
+std::vector<std::vector<double>> generateMatrix(int n,double density);
 
 
-int* flattenVector(const std::vector<std::vector<int>>& matrix);
+double* flattenVector(const std::vector<std::vector<double>>& matrix);
+
+void convertToCRS(double* A, int n, int* crs_ptrs, int* crs_colids, double* crs_values);
+
+void convertToCCS(double* A, int n, int* ccs_ptrs, int* ccs_rowids, double* ccs_values);
