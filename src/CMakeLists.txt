@@ -35,6 +35,12 @@ add_executable(RyserMultiGPU ${SOURCE_FILES})
 target_compile_definitions(RyserMultiGPU PRIVATE MULTI_GPU_TEST)
 set_common_properties(RyserMultiGPU)
 
+add_executable(RyserCPUPar ${SOURCE_FILES})
+target_compile_definitions(RyserCPUPar PRIVATE CPU_PAR_TEST)
+set_common_properties(RyserCPUPar)
+
 add_executable(RyserCPU ${SOURCE_FILES})
 target_compile_definitions(RyserCPU PRIVATE CPU_TEST)
 set_common_properties(RyserCPU)
+
+

@@ -280,13 +280,20 @@ std::cout << "Mutli GPU test"<<endl;
     cout << std::scientific << std::setprecision(2) << computePermanentSpaRyserMainMultiGPU(n, nonzeros, crs_ptrs, crs_colids, crs_values, ccs_ptrs, ccs_rowids, ccs_values) <<std::endl;
     double end_multi = omp_get_wtime();
     std::cout<<std::defaultfloat <<std::setprecision(6)<< "time "<<end_multi - start_multi<<endl; 
+
+#elif defined(CPU_PAR_TEST)
+std::cout << "CPU openmp test"<<endl;
+    double start_openmp= omp_get_wtime();
+    cout << std::scientific << std::setprecision(2) << computePermanentSpaRyserPar(n,crs_ptrs,crs_colids,crs_values,ccs_ptrs,ccs_rowids,ccs_values) <<std::endl;
+    double end_openmp = omp_get_wtime();
+    std::cout<<std::defaultfloat <<std::setprecision(6)<< "time "<<end_openmp - start_openmp<<endl; 
 #elif defined(CPU_TEST)
 std::cout << " CPU test"<<endl;
 
     double start_spa = omp_get_wtime();
     cout <<  std::scientific << std::setprecision(2) << computePermanentSpaRyser(n,crs_ptrs,crs_colids,crs_values,ccs_ptrs,ccs_rowids,ccs_values) << endl;
     double end_spa = omp_get_wtime();
-    std::cout <<std::defaultfloat <<std::setprecision(6)<< "ime "<<end_spa - start_spa<<endl; 
+    std::cout <<std::defaultfloat <<std::setprecision(6)<< "time "<<end_spa - start_spa<<endl; 
   #endif
     delete[] matrix;
   }
