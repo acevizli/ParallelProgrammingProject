@@ -6,6 +6,17 @@
 #include <algorithm>
 #include <numeric> 
 #include <bitset>
+
+#ifdef LONG_TYPE
+#warning "USING LONG TYPE"
+using value = long long int;
+#else
+#warning "USING DOUBLE TYPE"
+using value = double;
+#endif
+
+
+
 constexpr long long pow2(int exponent) {
     return exponent == 0 ? 1 : 2 * pow2(exponent - 1);
 }
@@ -40,15 +51,15 @@ struct NonZeroElement {
     double value;
 };
 
-std::vector<NonZeroElement> convertToNonZeroElements(double* A, int n);
+std::vector<NonZeroElement> convertToNonZeroElements(value* A, int n);
 
-double * generateMatrixFlatten(int n,double density);
+value * generateMatrixFlatten(int n,double density);
 
-std::vector<std::vector<double>> generateMatrix(int n,double density);
+std::vector<std::vector<value>> generateMatrix(int n,double density);
 
 
-double* flattenVector(const std::vector<std::vector<double>>& matrix);
+value* flattenVector(const std::vector<std::vector<value>>& matrix);
 
-void convertToCRS(double* A, int n, int* crs_ptrs, int* crs_colids, double* crs_values);
+void convertToCRS(value* A, int n, int* crs_ptrs, int* crs_colids, value* crs_values);
 
-void convertToCCS(double* A, int n, int* ccs_ptrs, int* ccs_rowids, double* ccs_values);
+void convertToCCS(value* A, int n, int* ccs_ptrs, int* ccs_rowids, value* ccs_values);

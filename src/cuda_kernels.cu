@@ -2,15 +2,16 @@
 #include "ryser_cuda.h"
 #include <cuda_runtime.h>
 #include <iostream>
-__global__ void computePermanentRyserSparseKernel(const NonZeroElement* nonZeroElements, int nonZeroCount, int n, unsigned long long C, double* results) {
-    extern __shared__ double shared[];
+
+__global__ void computePermanentRyserSparseKernel(const NonZeroElement* nonZeroElements, int nonZeroCount, int n, unsigned long long C, value* results) {
+    extern __shared__ value shared[];
     unsigned long long idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= C) return; // Out of bounds check
 
     unsigned long long k = idx + 1; // Skip k = 0
 
-    double rowsumprod = 1;
+    value rowsumprod = 1;
 
     int chi[64] = {0};    
 
@@ -26,7 +27,7 @@ __global__ void computePermanentRyserSparseKernel(const NonZeroElement* nonZeroE
         k2 = k2 / 2; // integer division        
         pos--;
     }
-    double rowSum[64] = {0}; // Max n = 64 due to bitset size
+    value rowSum[64] = {0}; // Max n = 64 due to bitset size
     for (int i = 0; i < nonZeroCount; ++i) {
         if (chi[nonZeroElements[i].col]) {
             rowSum[nonZeroElements[i].row] += nonZeroElements[i].value;
@@ -56,7 +57,7 @@ __global__ void computePermanentRyserSparseKernel(const NonZeroElement* nonZeroE
     }
 }
 
- double computePermanentRyserSparseCUDA(const std::vector<NonZeroElement>& nonZeroElements, int n) {
+ value computePermanentRyserSparseCUDA(const std::vector<NonZeroElement>& nonZeroElements, int n) {
     unsigned long long C = 1ULL << n; // 2^n
     int nonZeroCount = nonZeroElements.size();
 
@@ -65,26 +66,26 @@ __global__ void computePermanentRyserSparseKernel(const NonZeroElement* nonZeroE
     cudaMalloc(&d_nonZeroElements, nonZeroCount * sizeof(NonZeroElement));
     cudaMemcpy(d_nonZeroElements, nonZeroElements.data(), nonZeroCount * sizeof(NonZeroElement), cudaMemcpyHostToDevice);
 
-    double* d_results;
+    value* d_results;
 
     int blockSize = 256;
     int numBlocks = (C + blockSize - 1) / blockSize;
 
-    cudaMalloc(&d_results, numBlocks * sizeof(double));
+    cudaMalloc(&d_results, numBlocks * sizeof(value));
 
     // Launch the kernel
-    computePermanentRyserSparseKernel<<<numBlocks, blockSize, blockSize * sizeof(double)>>>(d_nonZeroElements, nonZeroCount, n, C, d_results);
+    computePermanentRyserSparseKernel<<<numBlocks, blockSize, blockSize * sizeof(value)>>>(d_nonZeroElements, nonZeroCount, n, C, d_results);
 
     // Copy results back to host
-    std::vector<double> results(numBlocks);
-    cudaMemcpy(results.data(), d_results, numBlocks * sizeof(double), cudaMemcpyDeviceToHost);
+    std::vector<value> results(numBlocks);
+    cudaMemcpy(results.data(), d_results, numBlocks * sizeof(value), cudaMemcpyDeviceToHost);
 
     // Free device memory
     cudaFree(d_nonZeroElements);
     cudaFree(d_results);
 
     // Sum up the results
-    double sum = 0;
+    value sum = 0;
     for (unsigned long long i = 0; i < numBlocks; ++i) {
         sum += results[i];
     }
@@ -97,7 +98,7 @@ __device__ int countTrailingZeros(unsigned long long x) {
 }
 
 __inline__ __device__
-double warpReduceSum(double val) {
+value warpReduceSum(value val) {
     for (int offset = warpSize / 2; offset > 0; offset /= 2) {
         val += __shfl_down_sync(0xFFFFFFFF, val, offset);
     }
@@ -105,8 +106,8 @@ double warpReduceSum(double val) {
 }
 
 __inline__ __device__
-double blockReduceSum(double val) {
-    extern __shared__ double shared[]; // Dynamically allocated shared memory
+value blockReduceSum(value val) {
+    extern __shared__ value shared[]; // Dynamically allocated shared memory
     int lane = threadIdx.x % warpSize;
     int wid = threadIdx.x / warpSize;
 
@@ -123,8 +124,8 @@ double blockReduceSum(double val) {
     return val;
 }
 
-__global__ void sumKernel(double* input, double* output, int n) {
-    double sum = 0.0;
+__global__ void sumKernel(value* input, value* output, int n) {
+    value sum = 0.0;
     for (int i = blockIdx.x * blockDim.x + threadIdx.x; i < n; i += blockDim.x * gridDim.x) {
         sum += input[i];
     }
@@ -136,22 +137,22 @@ __global__ void sumKernel(double* input, double* output, int n) {
     }
 }
 
-double computeSum(double* h_input, int n) {
-    double *d_input, *d_output;
+value computeSum(value* h_input, int n) {
+    value *d_input, *d_output;
     int block_size = 256;
     int gridSize = (n + block_size - 1) / block_size;
 
-    cudaMalloc(&d_input, n * sizeof(double));
-    cudaMalloc(&d_output, gridSize * sizeof(double));
+    cudaMalloc(&d_input, n * sizeof(value));
+    cudaMalloc(&d_output, gridSize * sizeof(value));
 
-    cudaMemcpy(d_input, h_input, n * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_input, h_input, n * sizeof(value), cudaMemcpyHostToDevice);
 
-    sumKernel<<<gridSize, block_size, block_size * sizeof(double)>>>(d_input, d_output, n);
+    sumKernel<<<gridSize, block_size, block_size * sizeof(value)>>>(d_input, d_output, n);
 
-    double* h_output = (double*)malloc(gridSize * sizeof(double));
-    cudaMemcpy(h_output, d_output, gridSize * sizeof(double), cudaMemcpyDeviceToHost);
+    value* h_output = (value*)malloc(gridSize * sizeof(value));
+    cudaMemcpy(h_output, d_output, gridSize * sizeof(value), cudaMemcpyDeviceToHost);
 
-    double final_sum = 0.0;
+    value final_sum = 0.0;
     for (int i = 0; i < gridSize; i++) {
         final_sum += h_output[i];
     }
@@ -163,17 +164,17 @@ double computeSum(double* h_input, int n) {
     return final_sum;
 }
 
-__global__ void computePermanentSpaRyserGPU(int allThreads, int chunkSize, int n, double* p_vec, double* x, int* crs_ptrs, int* crs_colids, double* crs_values, int* ccs_ptrs, int* ccs_rowids, double* ccs_values) {
-    extern __shared__ double shared_mem[];
+__global__ void computePermanentSpaRyserGPU(int allThreads, int chunkSize, int n, value* p_vec, value* x, int* crs_ptrs, int* crs_colids, value* crs_values, int* ccs_ptrs, int* ccs_rowids, value* ccs_values) {
+    extern __shared__ value shared_mem[];
     unsigned long long idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx >= allThreads) return; // Out of bounds check
 
     int nzeros = 0;
-    double prod = 1;
+    value prod = 1;
 
-    double inner_p = 0;
-    double * inner_x = (double *)alloca(n * sizeof(double)); 
+    value inner_p = 0;
+    value * inner_x = (value *)alloca(n * sizeof(value)); 
 
     // creata a copy of x in the shared mem for each thread
    for (unsigned long long i = 0; i < n; i++){
@@ -223,7 +224,7 @@ __global__ void computePermanentSpaRyserGPU(int allThreads, int chunkSize, int n
 
         for (int ptr = ccs_ptrs[j]; ptr < ccs_ptrs[j + 1]; ptr++) {
             int row = ccs_rowids[ptr];
-            double val = ccs_values[ptr];
+            value val = ccs_values[ptr];
 
             if (inner_x[row] == 0) {
                 nzeros -= 1;
@@ -276,8 +277,8 @@ __global__ void computePermanentSpaRyserGPU(int allThreads, int chunkSize, int n
     }
 }
 
-__global__ void computePermanentSpaRyserMultiGPU(int device_id, int allThreads, int chunkSize, int n, double* p_vec, double* x, int* ccs_ptrs, int* ccs_rowids, double* ccs_values) {
-    extern __shared__ double shared_mem[];
+__global__ void computePermanentSpaRyserMultiGPU(int device_id, int allThreads, int chunkSize, int n, value* p_vec, value* x, int* ccs_ptrs, int* ccs_rowids, value* ccs_values) {
+    extern __shared__ value shared_mem[];
     unsigned long long idx = blockIdx.x * blockDim.x + threadIdx.x;
     unsigned long long multi_dev_idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (device_id == 1){
@@ -293,10 +294,10 @@ __global__ void computePermanentSpaRyserMultiGPU(int device_id, int allThreads, 
     if (idx >= allThreads) return; // Out of bounds check
 
     int nzeros = 0;
-    double prod = 1;
+    value prod = 1;
 
-    double inner_p = 0;
-    double * inner_x = (double *)alloca(n * sizeof(double)); 
+    value inner_p = 0;
+    value * inner_x = (value *)alloca(n * sizeof(value)); 
 
     // creata a copy of x in the shared mem for each thread
    for (unsigned long long i = 0; i < n; i++){
@@ -346,7 +347,7 @@ __global__ void computePermanentSpaRyserMultiGPU(int device_id, int allThreads, 
 
         for (int ptr = ccs_ptrs[j]; ptr < ccs_ptrs[j + 1]; ptr++) {
             int row = ccs_rowids[ptr];
-            double val = ccs_values[ptr];
+            value val = ccs_values[ptr];
 
 //            if (multi_dev_idx == 4){
 //                printf("Multidev ID: %d, ptr: %d, row: %d, val: %f\n", multi_dev_idx, ptr, row, val);
@@ -403,15 +404,15 @@ __global__ void computePermanentSpaRyserMultiGPU(int device_id, int allThreads, 
 
 }
 
-double computePermanentSpaRyserMain(int n, int nnz, int* crs_ptrs, int* crs_colids, double* crs_values, int* ccs_ptrs, int* ccs_rowids, double* ccs_values) {
-    double* x = (double*)malloc(n * sizeof(double));
+value computePermanentSpaRyserMain(int n, int nnz, int* crs_ptrs, int* crs_colids, value* crs_values, int* ccs_ptrs, int* ccs_rowids, value* ccs_values) {
+    value* x = (value*)malloc(n * sizeof(value));
 
     int nzeros = 0;
-    double p = 1;
+    value p = 1;
 
     #pragma omp parallel for reduction(+: nzeros)
     for (int i = 0; i < n; i++) {
-        double sum = 0;
+        value sum = 0;
         #pragma omp parallel for reduction(+: sum)
         for (int ptr = crs_ptrs[i]; ptr < crs_ptrs[i + 1]; ptr++) {
             sum += crs_values[ptr];
@@ -443,41 +444,41 @@ double computePermanentSpaRyserMain(int n, int nnz, int* crs_ptrs, int* crs_coli
 
 //    printf("Number of threads: %u\n", allThreads);
 
-    size_t sharedMemSize = blockSize * n * sizeof(double); 
+    size_t sharedMemSize = blockSize * n * sizeof(value); 
 
-    //double* p_vec = (double*)malloc(allThreads * sizeof(double));
+    //value* p_vec = (value*)malloc(allThreads * sizeof(value));
 
     int *d_crs_ptrs, *d_crs_colids, *d_ccs_ptrs, *d_ccs_rowids;
-    double *d_crs_values, *d_ccs_values, *d_p_vec, *d_x;
+    value *d_crs_values, *d_ccs_values, *d_p_vec, *d_x;
 
     cudaMalloc((void **)&d_crs_ptrs, (n + 1) * sizeof(int));
     cudaMalloc((void **)&d_crs_colids, nnz * sizeof(int));
-    cudaMalloc((void **)&d_crs_values, nnz * sizeof(double));
+    cudaMalloc((void **)&d_crs_values, nnz * sizeof(value));
     cudaMalloc((void **)&d_ccs_ptrs, (n + 1) * sizeof(int));
     cudaMalloc((void **)&d_ccs_rowids, nnz * sizeof(int));
-    cudaMalloc((void **)&d_ccs_values, nnz * sizeof(double));
-    cudaMallocManaged((void **)&d_p_vec, numBlocks * sizeof(double));
-    cudaMalloc((void **)&d_x, n * sizeof(double));
+    cudaMalloc((void **)&d_ccs_values, nnz * sizeof(value));
+    cudaMallocManaged((void **)&d_p_vec, numBlocks * sizeof(value));
+    cudaMalloc((void **)&d_x, n * sizeof(value));
 
     cudaMemcpy(d_crs_ptrs, crs_ptrs, (n + 1) * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_crs_colids, crs_colids, nnz * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_crs_values, crs_values, nnz * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_crs_values, crs_values, nnz * sizeof(value), cudaMemcpyHostToDevice);
     cudaMemcpy(d_ccs_ptrs, ccs_ptrs, (n + 1) * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(d_ccs_rowids, ccs_rowids, nnz * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_ccs_values, ccs_values, nnz * sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_ccs_values, ccs_values, nnz * sizeof(value), cudaMemcpyHostToDevice);
 
-    //cudaMemcpy(d_p_vec, p_vec, allThreads * sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_x, x, n * sizeof(double), cudaMemcpyHostToDevice);
+    //cudaMemcpy(d_p_vec, p_vec, allThreads * sizeof(value), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_x, x, n * sizeof(value), cudaMemcpyHostToDevice);
 
-    computePermanentSpaRyserGPU<<<numBlocks, blockSize, blockSize * sizeof(double)>>>(allThreads, chunkSize, n, d_p_vec, d_x, d_crs_ptrs, d_crs_colids, d_crs_values, d_ccs_ptrs, d_ccs_rowids, d_ccs_values);
+    computePermanentSpaRyserGPU<<<numBlocks, blockSize, blockSize * sizeof(value)>>>(allThreads, chunkSize, n, d_p_vec, d_x, d_crs_ptrs, d_crs_colids, d_crs_values, d_ccs_ptrs, d_ccs_rowids, d_ccs_values);
     cudaDeviceSynchronize();
-    //cudaMemcpy(p_vec, d_p_vec, allThreads * sizeof(double), cudaMemcpyDeviceToHost);
+    //cudaMemcpy(p_vec, d_p_vec, allThreads * sizeof(value), cudaMemcpyDeviceToHost);
 
 //    for (int i = 0; i < numBlocks; i++) {
 //        printf("Block %d: %f\n", i, d_p_vec[i]);
 //    }
 
-    double sum = p;
+    value sum = p;
     sum+=computeSum(d_p_vec,numBlocks);
 
     sum = -sum * (2 * (n % 2) - 1);
@@ -501,9 +502,9 @@ __global__ void testMultiGPU(int size, float *a, float *b, float *c) {
     }
 }
 
-double computePermanentSpaRyserMainMultiGPU(int n, int nnz, int* crs_ptrs, int* crs_colids, double* crs_values, int* ccs_ptrs, int* ccs_rowids, double* ccs_values){
+value computePermanentSpaRyserMainMultiGPU(int n, int nnz, int* crs_ptrs, int* crs_colids, value* crs_values, int* ccs_ptrs, int* ccs_rowids, value* ccs_values){
 
-    double result = 0.0;
+    value result = 0.0;
     int deviceCount;
     cudaGetDeviceCount(&deviceCount);
 //    printf("Number of devices: %d\n", deviceCount);
@@ -513,15 +514,15 @@ double computePermanentSpaRyserMainMultiGPU(int n, int nnz, int* crs_ptrs, int* 
         return 0;
     }
 
-    double* x = (double*)malloc(n * sizeof(double));
-    double* x2 = (double*)malloc(n * sizeof(double));
+    value* x = (value*)malloc(n * sizeof(value));
+    value* x2 = (value*)malloc(n * sizeof(value));
 
     int nzeros = 0;
-    double p = 1;
+    value p = 1;
 
     #pragma omp parallel for reduction(+: nzeros)
     for (int i = 0; i < n; i++) {
-        double sum = 0;
+        value sum = 0;
         #pragma omp parallel for reduction(+: sum)
         for (int ptr = crs_ptrs[i]; ptr < crs_ptrs[i + 1]; ptr++) {
             sum += crs_values[ptr];
@@ -562,11 +563,11 @@ double computePermanentSpaRyserMainMultiGPU(int n, int nnz, int* crs_ptrs, int* 
         uint64_t numBlocks;
 
         // Permanent related variables
-        double *x;
-        double *ccs_values;
+        value *x;
+        value *ccs_values;
         int *ccs_ptrs;
         int *ccs_rowids;
-        double *p_vec;
+        value *p_vec;
     };
 
     DataStruct data[2];
@@ -582,7 +583,7 @@ double computePermanentSpaRyserMainMultiGPU(int n, int nnz, int* crs_ptrs, int* 
     data[0].ccs_ptrs = ccs_ptrs;
     data[0].ccs_rowids = ccs_rowids;
     data[0].ccs_values = ccs_values;
-    double *p_vec_1 = (double*)malloc(data[0].numBlocks * sizeof(double));
+    value *p_vec_1 = (value*)malloc(data[0].numBlocks * sizeof(value));
     data[0].p_vec = p_vec_1;
 
     
@@ -598,7 +599,7 @@ double computePermanentSpaRyserMainMultiGPU(int n, int nnz, int* crs_ptrs, int* 
     data[1].ccs_ptrs = ccs_ptrs;
     data[1].ccs_rowids = ccs_rowids;
     data[1].ccs_values = ccs_values;
-    double *p_vec_2 = (double*)malloc(data[0].numBlocks * sizeof(double));
+    value *p_vec_2 = (value*)malloc(data[0].numBlocks * sizeof(value));
     data[1].p_vec = p_vec_2;
 
 //    printf("Device ID: %d, C: %llu, blockSize: %d, chunkSize: %d, allThreads: %d, numBlocks: %d\n", data[0].deviceID, data[0].C, data[0].blockSize, data[0].chunkSize, data[0].allThreads, data[0].numBlocks);
@@ -633,36 +634,36 @@ double computePermanentSpaRyserMainMultiGPU(int n, int nnz, int* crs_ptrs, int* 
 */
 
         int *d_crs_ptrs, *d_crs_colids, *d_ccs_ptrs, *d_ccs_rowids;
-        double *d_crs_values, *d_ccs_values, *d_p_vec, *d_x;
+        value *d_crs_values, *d_ccs_values, *d_p_vec, *d_x;
 
         cudaMalloc((void **)&d_crs_ptrs, (n + 1) * sizeof(int));
         cudaMalloc((void **)&d_crs_colids, nnz * sizeof(int));
-        cudaMalloc((void **)&d_crs_values, nnz * sizeof(double));
+        cudaMalloc((void **)&d_crs_values, nnz * sizeof(value));
         cudaMalloc((void **)&d_ccs_ptrs, (n + 1) * sizeof(int));
         cudaMalloc((void **)&d_ccs_rowids, nnz * sizeof(int));
-        cudaMalloc((void **)&d_ccs_values, nnz * sizeof(double));
-        cudaMallocManaged((void **)&d_p_vec, data[i].numBlocks * sizeof(double));
-        cudaMalloc((void **)&d_x, n * sizeof(double));
+        cudaMalloc((void **)&d_ccs_values, nnz * sizeof(value));
+        cudaMallocManaged((void **)&d_p_vec, data[i].numBlocks * sizeof(value));
+        cudaMalloc((void **)&d_x, n * sizeof(value));
 
 //        cudaMemcpy(d_crs_ptrs, crs_ptrs, (n + 1) * sizeof(int), cudaMemcpyHostToDevice);
 //        cudaMemcpy(d_crs_colids, crs_colids, nnz * sizeof(int), cudaMemcpyHostToDevice);
-//        cudaMemcpy(d_crs_values, crs_values, nnz * sizeof(double), cudaMemcpyHostToDevice);
+//        cudaMemcpy(d_crs_values, crs_values, nnz * sizeof(value), cudaMemcpyHostToDevice);
         cudaMemcpy(d_ccs_ptrs, data[i].ccs_ptrs, (n + 1) * sizeof(int), cudaMemcpyHostToDevice);
         cudaMemcpy(d_ccs_rowids, data[i].ccs_rowids, nnz * sizeof(int), cudaMemcpyHostToDevice);
-        cudaMemcpy(d_ccs_values, data[i].ccs_values, nnz * sizeof(double), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_ccs_values, data[i].ccs_values, nnz * sizeof(value), cudaMemcpyHostToDevice);
 
-        //cudaMemcpy(d_p_vec, p_vec, allThreads * sizeof(double), cudaMemcpyHostToDevice);
-        cudaMemcpy(d_x, data[i].x, n * sizeof(double), cudaMemcpyHostToDevice);
+        //cudaMemcpy(d_p_vec, p_vec, allThreads * sizeof(value), cudaMemcpyHostToDevice);
+        cudaMemcpy(d_x, data[i].x, n * sizeof(value), cudaMemcpyHostToDevice);
 
 //        printf("Device ID before entering kernel: %d\n", data[i].deviceID);
-        computePermanentSpaRyserMultiGPU<<<data[i].numBlocks, data[i].blockSize, data[i].blockSize * sizeof(double)>>>(data[i].deviceID, data[i].allThreads, data[i].chunkSize,n, d_p_vec, d_x, d_ccs_ptrs, d_ccs_rowids, d_ccs_values);
-        cudaMemcpy(data[i].p_vec, d_p_vec, data[i].numBlocks * sizeof(double), cudaMemcpyDeviceToHost);
+        computePermanentSpaRyserMultiGPU<<<data[i].numBlocks, data[i].blockSize, data[i].blockSize * sizeof(value)>>>(data[i].deviceID, data[i].allThreads, data[i].chunkSize,n, d_p_vec, d_x, d_ccs_ptrs, d_ccs_rowids, d_ccs_values);
+        cudaMemcpy(data[i].p_vec, d_p_vec, data[i].numBlocks * sizeof(value), cudaMemcpyDeviceToHost);
         cudaDeviceSynchronize();
 
 //        for (int i =0; i<data[i].numBlocks; i++){
 //            printf("Device ID: %d, Block %d: %f\n", device, i, data[i].p_vec[i]);
 //        }
-        double sum = p;
+        value sum = p;
 //        sum+=computeSum(d_p_vec,numBlocks);
 
 //        sum = -sum * (2 * (n % 2) - 1);
@@ -683,15 +684,15 @@ double computePermanentSpaRyserMainMultiGPU(int n, int nnz, int* crs_ptrs, int* 
 //        printf("DeviceID: %d, Block %d: %f\n", data[1].deviceID, i, data[1].p_vec[i]);
 //    }
 
-    double *h_vec = (double*)malloc((data[0].numBlocks+data[1].numBlocks) * sizeof(double));
+    value *h_vec = (value*)malloc((data[0].numBlocks+data[1].numBlocks) * sizeof(value));
 
-    memcpy(h_vec, data[0].p_vec, data[0].numBlocks * sizeof(double));
-    memcpy(h_vec + data[0].numBlocks, data[1].p_vec, data[1].numBlocks * sizeof(double));
+    memcpy(h_vec, data[0].p_vec, data[0].numBlocks * sizeof(value));
+    memcpy(h_vec + data[0].numBlocks, data[1].p_vec, data[1].numBlocks * sizeof(value));
 
 //    for(int i = 0; i < data[0].numBlocks+data[1].numBlocks; i++){
 //        printf("Block %d: %f\n", i, h_vec[i]);
 //    }
-    double sum = p;
+    value sum = p;
     sum += computeSum(h_vec, data[0].numBlocks+data[1].numBlocks);
     sum = -sum * (2 * (n % 2) - 1);
 

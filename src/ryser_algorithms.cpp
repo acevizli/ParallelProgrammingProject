@@ -1,11 +1,10 @@
 #include "ryser_algorithms.h"
 #include "matrix_utils.h"
-#include <benchmark/benchmark.h>
 #include <omp.h>
 #include <iostream>
-double computePermanentRyserGreyCodeSparse(const std::vector<NonZeroElement>& nonZeroElements, int n) {
-    double sum = 0;
-    std::vector<double> rowSum(n, 0);
+value computePermanentRyserGreyCodeSparse(const std::vector<NonZeroElement>& nonZeroElements, int n) {
+    value sum = 0;
+    std::vector<value> rowSum(n, 0);
     unsigned long long totalSubsets = power2[n];
 
     std::bitset<64> chi(0);
@@ -28,7 +27,7 @@ double computePermanentRyserGreyCodeSparse(const std::vector<NonZeroElement>& no
             }
         }
 
-        double rowSumProd = 1;
+        value rowSumProd = 1;
         for (int i = 0; i < n; i++) {
             rowSumProd *= rowSum[i];
             if (rowSumProd == 0) break;
@@ -43,9 +42,9 @@ double computePermanentRyserGreyCodeSparse(const std::vector<NonZeroElement>& no
     return sum;
 }
 
-double computePermanentRyserGreyCode(double* A, int n) {
-    double sum = 0;
-    std::vector<double> rowSum(n, 0); 
+value computePermanentRyserGreyCode(value* A, int n) {
+    value sum = 0;
+    std::vector<value> rowSum(n, 0); 
     unsigned long long totalSubsets = power2[n]; // Total number of subsets is 2^n
     std::bitset<64> chi(0);
     
@@ -67,7 +66,7 @@ double computePermanentRyserGreyCode(double* A, int n) {
         }
 
         // Compute product of row sums for the current subset
-        double rowSumProd = 1;
+        value rowSumProd = 1;
         for (int i = 0; i < n; i++) {
             rowSumProd *= rowSum[i];
             if (rowSumProd == 0) break; // Early termination if product is zero
@@ -76,16 +75,16 @@ double computePermanentRyserGreyCode(double* A, int n) {
         // Update the permanent with the current subset's contribution
         int sign = ((n - nextChi.count()) % 2) ? -1 : 1;
         sum += sign * rowSumProd;
-        //benchmark::DoNotOptimize(sum);
+        //
         chi = nextChi; // Move to the next subset
     }
 
     return sum;
 }
 
-long double computePermanentRyser(double* A, int n) {
-    long double sum = 0.0;
-    long double rowsumprod, rowsum;   
+value computePermanentRyser(value* A, int n) {
+    value sum = 0.0;
+    value rowsumprod, rowsum;   
     unsigned long long C = power2[n]; 
 
     // loop all 2^n submatrices of A
@@ -117,16 +116,15 @@ long double computePermanentRyser(double* A, int n) {
         sum+= sign * rowsumprod;
                 //std::cout <<"sun: "<< sum<<" rowsumprod: "<<rowsumprod<<std::endl;
 
-        benchmark::DoNotOptimize(sum);
 
     }   
     //std::cout <<sum<<std::endl;
-    //benchmark::DoNotOptimize(sum);
+    //
     return sum;
 }
 
-double computePermanentRyserPar(double* A, int n) {
-    double sum = 0; 
+value computePermanentRyserPar(value* A, int n) {
+    value sum = 0; 
     unsigned long long C = power2[n]; 
     // loop all 2^n submatrices of A
     #pragma omp parallel for reduction(+:sum)
@@ -136,7 +134,7 @@ double computePermanentRyserPar(double* A, int n) {
         //benchmark::DoNotOptimize(chi);
         //int * chi = dec2binarr(k,n);
         // loop columns of submatrix #k
-        double rowsumprod = 1, rowsum;  
+        value rowsumprod = 1, rowsum;  
         for (int m = 0; m < n; m++)
         {
             rowsum = 0;
@@ -152,16 +150,15 @@ double computePermanentRyserPar(double* A, int n) {
         }        
         int sign = ((n - chi.count()) % 2) ? -1:1;
         sum += sign * rowsumprod;
-        benchmark::DoNotOptimize(sum);
 
     }   
     //std::cout <<sum<<std::endl;
-    //benchmark::DoNotOptimize(sum);
+    //
     return sum;
 }
 
-double computePermanentRyserSparsePar(const std::vector<NonZeroElement>& nonZeroElements, int n) {
-    double sum = 0;
+value computePermanentRyserSparsePar(const std::vector<NonZeroElement>& nonZeroElements, int n) {
+    value sum = 0;
     unsigned long long C = power2[n]; 
 
     // loop all 2^n submatrices of A
@@ -172,8 +169,8 @@ double computePermanentRyserSparsePar(const std::vector<NonZeroElement>& nonZero
         //benchmark::DoNotOptimize(chi);
         //int * chi = dec2binarr(k,n);
         // loop columns of submatrix #k
-        std::vector<double> rowSum(n, 0); // Accumulate row sums here
-        double rowsumprod = 1;
+        std::vector<value> rowSum(n, 0); // Accumulate row sums here
+        value rowsumprod = 1;
 
         // Aggregate contributions to row sums from each non-zero element
         // that is included in the current subset (chi)
@@ -189,15 +186,14 @@ double computePermanentRyserSparsePar(const std::vector<NonZeroElement>& nonZero
         }
         int sign = ((n - chi.count()) % 2) ? -1:1;
         sum += sign * rowsumprod;
-        benchmark::DoNotOptimize(sum);
 
     }   
     //std::cout <<sum<<std::endl;
-    //benchmark::DoNotOptimize(sum);
+    //
     return sum;
 }
 
-double computePermanentRyserSparse(const std::vector<NonZeroElement>& nonZeroElements, int n) {
+value computePermanentRyserSparse(const std::vector<NonZeroElement>& nonZeroElements, int n) {
     long sum = 0;
     unsigned long long C = power2[n]; 
 
@@ -209,8 +205,8 @@ double computePermanentRyserSparse(const std::vector<NonZeroElement>& nonZeroEle
         //benchmark::DoNotOptimize(chi);
         //int * chi = dec2binarr(k,n);
         // loop columns of submatrix #k
-        std::vector<double> rowSum(n, 0); // Accumulate row sums here
-        double rowsumprod = 1;
+        std::vector<value> rowSum(n, 0); // Accumulate row sums here
+        value rowsumprod = 1;
 
         // Aggregate contributions to row sums from each non-zero element
         // that is included in the current subset (chi)
@@ -226,11 +222,11 @@ double computePermanentRyserSparse(const std::vector<NonZeroElement>& nonZeroEle
         }
         int sign = ((n - chi.count()) % 2) ? -1:1;
         sum += sign * rowsumprod;
-        benchmark::DoNotOptimize(sum);
+        
 
     }   
     //std::cout <<sum<<std::endl;
-    //benchmark::DoNotOptimize(sum);
+    //
     return sum;
 }
 
@@ -238,13 +234,13 @@ double computePermanentRyserSparse(const std::vector<NonZeroElement>& nonZeroEle
 
 
 
-double computePermanentSpaRyser(int n, int* crs_ptrs, int* crs_colids, double* crs_values, int* ccs_ptrs, int* ccs_rowids, double* ccs_values) {
-    double* x = (double*)malloc(n * sizeof(double));
+value computePermanentSpaRyser(int n, int* crs_ptrs, int* crs_colids, value* crs_values, int* ccs_ptrs, int* ccs_rowids, value* ccs_values) {
+    value* x = (value*)malloc(n * sizeof(value));
 
     int nzeros = 0;
     //#pragma omp parallel for reduction(+:nzeros)
     for (int i = 0; i < n; i++){
-        double sum = 0.0;
+        value sum = 0.0;
         for (int ptr = crs_ptrs[i]; ptr < crs_ptrs[i+1]; ptr++){
             sum = sum + crs_values[ptr];
         }
@@ -255,7 +251,7 @@ double computePermanentSpaRyser(int n, int* crs_ptrs, int* crs_colids, double* c
         }
     }
 
-    double p = 1.0;
+    value p = 1.0;
     
     if (nzeros == 0){
         for (int j = 0; j < n; j++){
@@ -283,7 +279,7 @@ double computePermanentSpaRyser(int n, int* crs_ptrs, int* crs_colids, double* c
 
         for (int ptr = ccs_ptrs[j]; ptr < ccs_ptrs[j+1]; ptr++){
             int row = ccs_rowids[ptr];
-            double val = ccs_values[ptr];
+            value val = ccs_values[ptr];
 
             if (x[row] == 0.0){
                 nzeros = nzeros - 1;
@@ -298,7 +294,7 @@ double computePermanentSpaRyser(int n, int* crs_ptrs, int* crs_colids, double* c
 
         if (nzeros == 0) {
             ctr++;
-            double prod = 1.0;
+            value prod = 1.0;
             //#pragma omp parallel for reduction(*:prod)
             for (int i = 0; i < n; i++) {
                 prod = prod * x[i];
@@ -316,16 +312,16 @@ double computePermanentSpaRyser(int n, int* crs_ptrs, int* crs_colids, double* c
 
 
 
-double computePermanentSpaRyserPar(int n, int* crs_ptrs, int* crs_colids, double* crs_values, int* ccs_ptrs, int* ccs_rowids, double* ccs_values) {
+value computePermanentSpaRyserPar(int n, int* crs_ptrs, int* crs_colids, value* crs_values, int* ccs_ptrs, int* ccs_rowids, value* ccs_values) {
 
-    double* x = (double*)malloc(n * sizeof(double));
+    value* x = (value*)malloc(n * sizeof(value));
 
     int nzeros = 0;
-    double p = 1;
+    value p = 1;
 
 #pragma omp parallel for reduction(+: nzeros) num_threads(16)
     for (int i = 0; i < n; i++) {
-        double sum = 0;
+        value sum = 0;
         #pragma omp parallel for reduction(+: sum) num_threads(16)
         for (int ptr = crs_ptrs[i]; ptr < crs_ptrs[i + 1]; ptr++) {
             sum += crs_values[ptr];
@@ -357,10 +353,10 @@ double computePermanentSpaRyserPar(int n, int* crs_ptrs, int* crs_colids, double
     int tid = omp_get_thread_num();
 
     nzeros = 0;
-    double prod = 1;
+    value prod = 1;
 
-    double inner_p = 0;
-    double * inner_x = (double *)alloca(n * sizeof(double)); 
+    value inner_p = 0;
+    value * inner_x = (value *)alloca(n * sizeof(value)); 
 
     // creata a copy of x in the shared mem for each thread
 
@@ -414,7 +410,7 @@ double computePermanentSpaRyserPar(int n, int* crs_ptrs, int* crs_colids, double
 
         for (int ptr = ccs_ptrs[j]; ptr < ccs_ptrs[j + 1]; ptr++) {
             int row = ccs_rowids[ptr];
-            double val = ccs_values[ptr];
+            value val = ccs_values[ptr];
 
             if (inner_x[row] == 0) {
                 nzeros -= 1;
