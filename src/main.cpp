@@ -85,7 +85,7 @@ static void ryserTestSpaRyser(benchmark::State& state) {
     }
     delete[] matrix;
 }
-#ifdef BENCHMARK_t
+#ifdef BENCHMARK_TEST
 //BENCHMARK(ryserTest)->ArgsProduct({benchmark::CreateDenseRange(24,24,1),benchmark::CreateDenseRange(1,10,2)})->Unit(benchmark::kMillisecond);
 //BENCHMARK(ryserTestPar)->ArgsProduct({benchmark::CreateDenseRange(24,24,1),benchmark::CreateDenseRange(1,10,2)})->Unit(benchmark::kMillisecond);
 
@@ -268,21 +268,31 @@ if(matrix[i*n+j] != 0) nonzeros++;
     // cout << computePermanentRyserSparseCUDA(sparse,n) <<std::endl;
     // double end = omp_get_wtime();
     // std::cout << "time "<<end - start<<endl; 
-
+#if defined(GPU_TEST)
+std::cout << "Single GPU test"<<endl;
     double start= omp_get_wtime();
     cout << std::scientific << std::setprecision(2) << computePermanentSpaRyserMain(n, nonzeros, crs_ptrs, crs_colids, crs_values, ccs_ptrs, ccs_rowids, ccs_values) <<std::endl;
     double end = omp_get_wtime();
     std::cout<<std::defaultfloat <<std::setprecision(6)<< "time "<<end - start<<endl; 
-
+#elif defined(MULTI_GPU_TEST)
+std::cout << "Mutli GPU test"<<endl;
     double start_multi= omp_get_wtime();
     cout << std::scientific << std::setprecision(2) << computePermanentSpaRyserMainMultiGPU(n, nonzeros, crs_ptrs, crs_colids, crs_values, ccs_ptrs, ccs_rowids, ccs_values) <<std::endl;
     double end_multi = omp_get_wtime();
     std::cout<<std::defaultfloat <<std::setprecision(6)<< "time "<<end_multi - start_multi<<endl; 
-    
+#elif defined(CPU_TEST)
+std::cout << " CPU test"<<endl;
+
+    double start_spa = omp_get_wtime();
+    cout <<  std::scientific << std::setprecision(2) << computePermanentSpaRyser(n,crs_ptrs,crs_colids,crs_values,ccs_ptrs,ccs_rowids,ccs_values) << endl;
+    double end_spa = omp_get_wtime();
+    std::cout <<std::defaultfloat <<std::setprecision(6)<< "ime "<<end_spa - start_spa<<endl; 
+  #endif
     delete[] matrix;
   }
   return 0;
 }
+
 
 
 
