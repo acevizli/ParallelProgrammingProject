@@ -1,107 +1,8 @@
 
-#include <benchmark/benchmark.h>
 #include "matrix_utils.h"
 #include "ryser_algorithms.h"
 #include "ryser_cuda.h"
-static void ryserTestGreyCodeSparse(benchmark::State& state) {
-     auto matrix = generateMatrixFlatten(state.range(0),((double)state.range(1)) / 100.0); // Generate a matrix of size n x n with density
-     auto sparse = convertToNonZeroElements(matrix,state.range(0));
-    for (auto _ : state) {
-        computePermanentRyserGreyCodeSparse(sparse,state.range(0)); // Replace with your naive function call
-    }
-    delete[] matrix;
-}
 
-static void ryserTestGreyCode(benchmark::State& state) {
-     auto matrix = generateMatrixFlatten(state.range(0),((double)state.range(1)) / 100.0); // Generate a matrix of size n x n
-    for (auto _ : state) {
-        computePermanentRyserGreyCode(matrix,state.range(0)); // Replace with your naive function call
-    }
-    delete[] matrix;
-}
-
-static void ryserTest(benchmark::State& state) {
-     auto matrix = generateMatrixFlatten(state.range(0),((double)state.range(1)) / 100.0); // Generate a matrix of size n x n
-    for (auto _ : state) {
-        computePermanentRyser(matrix,state.range(0)); // Replace with your naive function call
-    }
-    delete[] matrix;
-}
-/*static void ryserTestPar(benchmark::State& state) {
-     auto matrix = generateMatrixFlatten(state.range(0),((double)state.range(1)) / 100.0); // Generate a matrix of size n x n
-    for (auto _ : state) {
-        computePermanentRyserPar(matrix,state.range(0)); // Replace with your naive function call
-    }
-    delete[] matrix;
-}*/
-
-static void ryserTestSparse(benchmark::State& state) {
-     auto matrix = generateMatrixFlatten(state.range(0),((double)state.range(1)) / 100.0); // Generate a matrix of size n x n
-     auto sparse = convertToNonZeroElements(matrix,state.range(0));
-    for (auto _ : state) {
-        computePermanentRyserSparse(sparse,state.range(0)); // Replace with your naive function call
-    }
-    delete[] matrix;
-}
-
-static void ryserTestSparseCUDA(benchmark::State& state) {
-     auto matrix = generateMatrixFlatten(state.range(0),((double)state.range(1)) / 100.0); // Generate a matrix of size n x n
-     auto sparse = convertToNonZeroElements(matrix,state.range(0));
-    for (auto _ : state) {
-        computePermanentRyserSparseCUDA(sparse,state.range(0)); // Replace with your naive function call
-    }
-    delete[] matrix;
-}
-
-static void ryserTestSparseParallel(benchmark::State& state) {
-     auto matrix = generateMatrixFlatten(state.range(0),((double)state.range(1)) / 100.0); // Generate a matrix of size n x n
-     auto sparse = convertToNonZeroElements(matrix,state.range(0));
-    for (auto _ : state) {
-        computePermanentRyserSparsePar(sparse,state.range(0)); // Replace with your naive function call
-    }
-    delete[] matrix;
-}
-
-static void ryserTestSpaRyser(benchmark::State& state) {
-    int nnz = static_cast<int>(state.range(0) * state.range(0) * ((double)state.range(1)) / 100.0);
-
-    // CRS
-    int* crs_ptrs = (int*)malloc((state.range(0) + 1) * sizeof(int));
-    int* crs_colids = (int*)malloc(nnz * sizeof(int));
-    double* crs_values = (double*)malloc(nnz * sizeof(double));
-
-    // CCS
-    int* ccs_ptrs = (int*)malloc((state.range(0) + 1) * sizeof(int));
-    int* ccs_rowids = (int*)malloc(nnz * sizeof(int));
-    double* ccs_values = (double*)malloc(nnz * sizeof(double));
-    
-    auto matrix = generateMatrixFlatten(state.range(0),((double)state.range(1)) / 100.0); // Generate a matrix of size n x n
-    
-    convertToCRS(matrix, state.range(0), crs_ptrs, crs_colids, crs_values);
-    convertToCCS(matrix, state.range(0), ccs_ptrs, ccs_rowids, ccs_values);
-    
-    for (auto _ : state) {
-        computePermanentSpaRyser(state.range(0), crs_ptrs, crs_colids, crs_values, ccs_ptrs, ccs_rowids, ccs_values); // Replace with your naive function call
-    }
-    delete[] matrix;
-}
-#ifdef BENCHMARK_TEST
-//BENCHMARK(ryserTest)->ArgsProduct({benchmark::CreateDenseRange(24,24,1),benchmark::CreateDenseRange(1,10,2)})->Unit(benchmark::kMillisecond);
-//BENCHMARK(ryserTestPar)->ArgsProduct({benchmark::CreateDenseRange(24,24,1),benchmark::CreateDenseRange(1,10,2)})->Unit(benchmark::kMillisecond);
-
-//BENCHMARK(ryserTestSparse)->ArgsProduct({benchmark::CreateDenseRange(24,24,1),benchmark::CreateDenseRange(1,10,2)})->Unit(benchmark::kMillisecond);
-BENCHMARK(ryserTestSparseCUDA)->ArgsProduct({benchmark::CreateDenseRange(24,36,2),benchmark::CreateDenseRange(30,30,2)})->Unit(benchmark::kMillisecond);
-
-//BENCHMARK(ryserTestGreyCode)->ArgsProduct({benchmark::CreateDenseRange(24,24,4),benchmark::CreateDenseRange(3,3,1)})->Unit(benchmark::kMillisecond);
-//BENCHMARK(ryserTestGreyCodeSparse)->ArgsProduct({benchmark::CreateDenseRange(24,24,4),benchmark::CreateDenseRange(3,3,2)})->Unit(benchmark::kMillisecond);
-
-//BENCHMARK(ryserTestGreyCodeSparse)->ArgsProduct({benchmark::CreateDenseRange(24,24,1),benchmark::CreateDenseRange(1,10,2)})->Unit(benchmark::kMillisecond);
-//BENCHMARK(ryserTestSparseParallel)->ArgsProduct({benchmark::CreateDenseRange(24,24,1),benchmark::CreateDenseRange(1,10,2)})->Unit(benchmark::kMillisecond);
-//BENCHMARK(ryserTestSpaRyser)->ArgsProduct({benchmark::CreateDenseRange(24,24,1),benchmark::CreateDenseRange(1,10,2)})->Unit(benchmark::kMillisecond);
-
-BENCHMARK_MAIN();
-
-#else
 #include <cstring>
 #include <cmath>
 #include <omp.h>
@@ -225,8 +126,6 @@ if(matrix[i*n+j] != 0) nonzeros++;
     }
     file.close();    
   }
-
-  auto sparse = convertToNonZeroElements(matrix,n);
   cout << "file is read"<<endl;
     //PrintMatrix(matrix, n);    
   
@@ -243,31 +142,7 @@ if(matrix[i*n+j] != 0) nonzeros++;
     convertToCRS(matrix, n, crs_ptrs, crs_colids, crs_values);
     convertToCCS(matrix, n, ccs_ptrs, ccs_rowids, ccs_values);
   if(argc > 1) {
-    std::cout << std::fixed << std::setprecision(50);
 
-
-    // double start_spa = omp_get_wtime();
-    // cout <<  computePermanentSpaRyser(n,crs_ptrs,crs_colids,crs_values,ccs_ptrs,ccs_rowids,ccs_values) << endl;
-    // double end_spa = omp_get_wtime();
-    // std::cout << "spa time "<<end_spa - start_spa<<endl; 
-
-    // double start_omp = omp_get_wtime();
-    // cout << computePermanentRyserSparsePar(sparse,n) <<endl;
-    // double end_omp = omp_get_wtime();
-    // std::cout << "par time "<<end_omp - start_omp<<endl; 
-
-
-    //matrix = generateMatrixFlatten(20,0.4);
-    // double start_hoca = omp_get_wtime();
-    // cout << big_perman(matrix,n) <<endl;
-    // double end_hoca = omp_get_wtime();
-    
-    // std::cout << "hoca time "<<end_hoca - start_hoca<<endl; 
-    // double start= omp_get_wtime();
-
-    // cout << computePermanentRyserSparseCUDA(sparse,n) <<std::endl;
-    // double end = omp_get_wtime();
-    // std::cout << "time "<<end - start<<endl; 
 #if defined(GPU_TEST)
 std::cout << "Single GPU test"<<endl;
     double start= omp_get_wtime();
@@ -287,13 +162,6 @@ std::cout << "CPU openmp test"<<endl;
     cout << std::scientific << std::setprecision(2) << computePermanentSpaRyserPar(n,crs_ptrs,crs_colids,crs_values,ccs_ptrs,ccs_rowids,ccs_values) <<std::endl;
     double end_openmp = omp_get_wtime();
     std::cout<<std::defaultfloat <<std::setprecision(6)<< "time "<<end_openmp - start_openmp<<endl; 
-#elif defined(CPU_TEST)
-std::cout << " CPU test"<<endl;
-
-    double start_spa = omp_get_wtime();
-    cout <<  std::scientific << std::setprecision(2) << computePermanentSpaRyser(n,crs_ptrs,crs_colids,crs_values,ccs_ptrs,ccs_rowids,ccs_values) << endl;
-    double end_spa = omp_get_wtime();
-    std::cout <<std::defaultfloat <<std::setprecision(6)<< "time "<<end_spa - start_spa<<endl; 
   #endif
     delete[] matrix;
   }
@@ -302,5 +170,3 @@ std::cout << " CPU test"<<endl;
 
 
 
-
-#endif

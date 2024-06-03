@@ -34,21 +34,6 @@ inline int* dec2binarr(long n, int dim)
     return res;
 }
 
-struct NonZeroElement {
-    int row;
-    int col;
-    double value;
-};
-
-std::vector<NonZeroElement> convertToNonZeroElements(double* A, int n);
-
-double * generateMatrixFlatten(int n,double density);
-
-std::vector<std::vector<double>> generateMatrix(int n,double density);
-
-
-double* flattenVector(const std::vector<std::vector<double>>& matrix);
-
 void convertToCRS(double* A, int n, int* crs_ptrs, int* crs_colids, double* crs_values);
 
 void convertToCCS(double* A, int n, int* ccs_ptrs, int* ccs_rowids, double* ccs_values);
