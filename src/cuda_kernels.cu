@@ -9,7 +9,6 @@ __device__ int countTrailingZeros(unsigned long long x) {
 
 __inline__ __device__
 double warpReduceSum(double val) {
-    size_t stackSize;
     for (int offset = warpSize / 2; offset > 0; offset /= 2) {
         val += __shfl_down_sync(0xFFFFFFFF, val, offset);
     }
@@ -49,8 +48,6 @@ __global__ void sumKernel(double* input, double* output, int n) {
 }
 
 double computeSum(double* h_input, int n) {
-    size_t stackSize;
-    cudaError_t err = cudaDeviceGetLimit(&stackSize, cudaLimitStackSize);
     double *d_input, *d_output;
     int block_size = 256;
     int gridSize = (n + block_size - 1) / block_size;
