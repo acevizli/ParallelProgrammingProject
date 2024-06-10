@@ -10,7 +10,8 @@
 #include <fstream>
 #include <iostream>
 #include <iomanip>
-
+#include <cstdlib>
+#include <stdexcept> 
 using namespace std;
 void PrintMatrix(double* matrix, int size){
   int count = 0;
@@ -80,33 +81,33 @@ double big_perman (double *a, int m) {
 }
 
 int main(int argc, char *argv[]){
+
+  if (argc != 3) {
+        std::cerr << "Usage: " << argv[0] << " <matrix_file_name> <no_threads/no_GPUs>" << std::endl;
+        return 1;
+  }
+
   int n;
   double* matrix;
-    int nonzeros =0;
- 
-  if(argc == 3) {
-    n = stoi(argv[1]);
-    float nonZeroPercentage = atof(argv[2]);
-
-    matrix = new double[n*n];
-    memset(matrix, 0, sizeof(double) * n * n);
-    srand(time(NULL));
-    // initialize randomly
-    for (int i = 0; i < n; ++i) {
-      for (int j = 0; j < n; ++j) {
-	double random_value = rand() / (RAND_MAX + 0.0f);
-	if(j % 2 == 0) {
-	  matrix[i*n+j] = (random_value < nonZeroPercentage) ? (1 + random_value/5) : 0;
-	} else {
-	  matrix[i*n+j] = (random_value < nonZeroPercentage) ? (1 - random_value/5) : 0;
-	}	
-if(matrix[i*n+j] != 0) nonzeros++;
-      } 
-    }
-//    PrintMatrix(matrix, n);    
-  } else if(argc == 2) {
-    std::string filename = argv[1];  // Replace with your file name
+  int nonzeros =0;
+    std::string filename = argv[1]; 
     std::ifstream file(filename);
+
+    if (filename.empty()) {
+        std::cerr << "Error: Filename cannot be empty" << std::endl;
+        return 1;
+    }
+
+    int thread_count;
+    try {
+        thread_count = std::stoi(argv[2]);
+    } catch (const std::invalid_argument&) {
+        std::cerr << "Error: no_threads/no_GPUs must be an integer" << std::endl;
+        return 1;
+    } catch (const std::out_of_range&) {
+        std::cerr << "Error: no_threads/no_GPUs argument is out of range" << std::endl;
+        return 1;
+    }
 
     if (!file.is_open()) {
         std::cerr << "Failed to open the file: " << filename << std::endl;
@@ -120,14 +121,11 @@ if(matrix[i*n+j] != 0) nonzeros++;
 
     for (int i = 0; i < nonzeros; ++i) {
         int row_id, col_id;
-	double nnz_value;
+	      double nnz_value;
         file >> row_id >> col_id >> nnz_value;
-	matrix[(row_id * n) + col_id] = nnz_value;
+      	matrix[(row_id * n) + col_id] = nnz_value;
     }
-    file.close();    
-  }
-  cout << "file is read"<<endl;
-    //PrintMatrix(matrix, n);    
+    file.close();  
   
     int* crs_ptrs = (int*)malloc((n + 1) * sizeof(int));
     int* crs_colids = (int*)malloc(nonzeros * sizeof(int));
@@ -141,30 +139,43 @@ if(matrix[i*n+j] != 0) nonzeros++;
     
     convertToCRS(matrix, n, crs_ptrs, crs_colids, crs_values);
     convertToCCS(matrix, n, ccs_ptrs, ccs_rowids, ccs_values);
-  if(argc > 1) {
 
 #if defined(GPU_TEST)
-std::cout << "Single GPU test"<<endl;
-    double start= omp_get_wtime();
-    cout << std::scientific << std::setprecision(2) << computePermanentSpaRyserMain(n, nonzeros, crs_ptrs, crs_colids, crs_values, ccs_ptrs, ccs_rowids, ccs_values) <<std::endl;
-    double end = omp_get_wtime();
-    std::cout<<std::defaultfloat <<std::setprecision(6)<< "time "<<end - start<<endl; 
-#elif defined(MULTI_GPU_TEST)
-std::cout << "Mutli GPU test"<<endl;
-    double start_multi= omp_get_wtime();
-    cout << std::scientific << std::setprecision(2) << computePermanentSpaRyserMainMultiGPU(n, nonzeros, crs_ptrs, crs_colids, crs_values, ccs_ptrs, ccs_rowids, ccs_values) <<std::endl;
-    double end_multi = omp_get_wtime();
-    std::cout<<std::defaultfloat <<std::setprecision(6)<< "time "<<end_multi - start_multi<<endl; 
-
+    if(thread_count > 1) {
+      double start= omp_get_wtime();
+      double result = computePermanentSpaRyserMainMultiGPU(thread_count, n, nonzeros, crs_ptrs, crs_colids, crs_values, ccs_ptrs, ccs_rowids, ccs_values);
+      double end = omp_get_wtime();
+      auto time = end - start;
+      cout << std::scientific << std::setprecision(2) << result <<" "<<std::defaultfloat <<std::setprecision(6) << time << std::endl;
+    }
+    else {
+      double start= omp_get_wtime();
+      double result = computePermanentSpaRyserMain(n, nonzeros, crs_ptrs, crs_colids, crs_values, ccs_ptrs, ccs_rowids, ccs_values);
+      double end = omp_get_wtime();
+      auto time = end - start;
+      cout << std::scientific << std::setprecision(2) << result << " " <<std::defaultfloat <<std::setprecision(6) << time << std::endl;
+    }
 #elif defined(CPU_PAR_TEST)
-std::cout << "CPU openmp test"<<endl;
+    omp_set_num_threads(thread_count);
+      #pragma omp parallel
+    {
+        int threads = omp_get_num_threads();        
+        #pragma omp single
+        {
+          int threads = omp_get_num_threads();
+          if(threads != thread_count) {
+              std::cerr << "WARNING: OMP set threads failed Performance will be impacted, Requested thread count: "
+              << thread_count <<" Current Thread count: "<<threads<< std::endl;
+          }
+        }
+    }
     double start_openmp= omp_get_wtime();
-    cout << std::scientific << std::setprecision(2) << computePermanentSpaRyserPar(n,crs_ptrs,crs_colids,crs_values,ccs_ptrs,ccs_rowids,ccs_values) <<std::endl;
+    double result = computePermanentSpaRyserPar(n,crs_ptrs,crs_colids,crs_values,ccs_ptrs,ccs_rowids,ccs_values);
     double end_openmp = omp_get_wtime();
-    std::cout<<std::defaultfloat <<std::setprecision(6)<< "time "<<end_openmp - start_openmp<<endl; 
+    auto time = end_openmp - start_openmp;
+    cout << std::scientific << std::setprecision(2) << result << " " << std::defaultfloat <<std::setprecision(6) << time <<std::endl;
   #endif
     delete[] matrix;
-  }
   return 0;
 }
 

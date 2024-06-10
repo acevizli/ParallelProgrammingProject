@@ -9,10 +9,10 @@ double computePermanentSpaRyserPar(int n, int* crs_ptrs, int* crs_colids, double
     int nzeros = 0;
     double p = 1;
 
-#pragma omp parallel for reduction(+: nzeros) num_threads(16)
+#pragma omp parallel for reduction(+: nzeros)
     for (int i = 0; i < n; i++) {
         double sum = 0;
-        #pragma omp parallel for reduction(+: sum) num_threads(16)
+        #pragma omp parallel for reduction(+: sum)
         for (int ptr = crs_ptrs[i]; ptr < crs_ptrs[i + 1]; ptr++) {
             sum += crs_values[ptr];
         }
@@ -25,7 +25,7 @@ double computePermanentSpaRyserPar(int n, int* crs_ptrs, int* crs_colids, double
     }
  
     if (nzeros == 0) {
-#pragma omp parallel for reduction(*: p) num_threads(16)
+#pragma omp parallel for reduction(*: p)
         for (int j = 0; j < n; j++) {
             p *= x[j];
         }
@@ -38,7 +38,7 @@ double computePermanentSpaRyserPar(int n, int* crs_ptrs, int* crs_colids, double
 
     unsigned long long chunkSize = (1ULL << n) / nthrds;
 
-#pragma omp parallel num_threads(16)
+#pragma omp parallel
 {
     int tid = omp_get_thread_num();
 

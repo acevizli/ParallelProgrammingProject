@@ -1,16 +1,12 @@
 Requirements
 cmake 3.25
-Google Benchmark
-Gtest 1.10
+CUDA
 
 To Build
+./build.sh
 
-mkdir build && cd build
-cmake ..
-make
+To run GPU test
+./build/RyserGPU file_name GPU_count
 
-To run
-./src/RyserBenchmark
-
-To test
-./test/ryser_tests
+To run CPU test
+./build/RyserCPU file_name thread_count

@@ -9,6 +9,7 @@ __device__ int countTrailingZeros(unsigned long long x) {
 
 __inline__ __device__
 double warpReduceSum(double val) {
+    size_t stackSize;
     for (int offset = warpSize / 2; offset > 0; offset /= 2) {
         val += __shfl_down_sync(0xFFFFFFFF, val, offset);
     }
@@ -48,6 +49,8 @@ __global__ void sumKernel(double* input, double* output, int n) {
 }
 
 double computeSum(double* h_input, int n) {
+    size_t stackSize;
+    cudaError_t err = cudaDeviceGetLimit(&stackSize, cudaLimitStackSize);
     double *d_input, *d_output;
     int block_size = 256;
     int gridSize = (n + block_size - 1) / block_size;
@@ -369,21 +372,21 @@ __global__ void testMultiGPU(int size, float *a, float *b, float *c) {
     }
 }
 
-double computePermanentSpaRyserMainMultiGPU(int n, int nnz, int* crs_ptrs, int* crs_colids, double* crs_values, int* ccs_ptrs, int* ccs_rowids, double* ccs_values){
-    int num_gpus = 2;
+double computePermanentSpaRyserMainMultiGPU(int gpu_count, int n, int nnz, int* crs_ptrs, int* crs_colids, double* crs_values, int* ccs_ptrs, int* ccs_rowids, double* ccs_values){
+    int num_gpus = 1;
     cudaGetDeviceCount(&num_gpus);
 
     if (num_gpus < 1)
     {
         printf("no CUDA capable devices were detected\n");
-        return 1;
+        exit(1);
+    }
+    else if(num_gpus < gpu_count) {
+        printf("Given GPU count is not available, Requested: %d Available: %d\n",gpu_count,num_gpus);
+        exit(1);
     }
 
-
-    num_gpus=2;
-
-    int deviceCount;
-    cudaGetDeviceCount(&deviceCount);
+    num_gpus=gpu_count;
 
     double **xs = (double**)malloc(num_gpus * sizeof(double*));
 
@@ -466,7 +469,6 @@ double computePermanentSpaRyserMainMultiGPU(int n, int nnz, int* crs_ptrs, int* 
     for(int i=0; i<num_gpus; i++){
         subset_size += datas[i].C;
     }
-
 
     omp_set_num_threads(num_gpus);
     #pragma omp parallel
